@@ -7,7 +7,7 @@ class App {
 
     public app: express.Application = express();
     public routePrv: MeetingRoutes = new MeetingRoutes();
-    public mongoUrl: string = 'mongodb://mongo:27017/RobotDb';
+    public mongoUrl: string = 'mongodb://localhost/RobotDb';
 
 
     constructor() {

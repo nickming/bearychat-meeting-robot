@@ -40,8 +40,8 @@ export class MeetingController {
     }
 
     handleBearyChatWebHook(req: Request, res: Response): void {
-        const vchannel: string = req.body
-        const token: string = req.body
+        const vchannel: string = req.body['vchannel']
+        const token: string = req.body['token']
         this.bearyChatHelper.sendMessageToBearyChat(token, vchannel,
             '欢迎使用会议助手小机器人!', BEARYCHAT_INIT_URL)
             .then(_ => {
@@ -61,7 +61,7 @@ export class MeetingController {
     }
 
     handleDynamicMeetingData(req: Request, res: Response): void {
-        const action: string = req.body
+        const action: string = req.body['action']
         switch (action) {
             case ActionType.CREATE: {
                 this.sendForm(CREATE_STATE_FORM, res);
@@ -95,8 +95,8 @@ export class MeetingController {
     }
 
     handleShowMeetingResult(req: Request, res: Response, isGet: boolean): any {
-        const meeting_id = req.query;
-        const user_id = req.query;
+        const meeting_id = req.query['meeting_id'];
+        const user_id = req.query['user_id'];
         let topic = ""
         if (isGet) {
             MeetingReceipt.findOne({
@@ -143,7 +143,7 @@ export class MeetingController {
     }
 
     private handleDeleteMeetingFormRequest(req: Request, res: Response) {
-        const user_id: string = req.query;
+        const user_id: string = req.query['user_id'];
         Meeting.find({ uid: user_id })
             .then(meetings => {
                 return generateDeleteMeetingForm(meetings)
@@ -157,7 +157,7 @@ export class MeetingController {
     }
 
     private handleManageMeetingFormRequest(req: Request, res: Response) {
-        const user_id: string = req.query;
+        const user_id: string = req.query['user_id'];
         Meeting.find({
             uid: user_id
         })
@@ -209,14 +209,14 @@ export class MeetingController {
     }
 
     private createMeetingFromRequest(request: Request, response: Response) {
-        const user_id: string = request.query;
-        const token: string = request.query;
-        const team_id: string = request.query;
+        const user_id: string = request.query['user_id'];
+        const token: string = request.query['token'];
+        const team_id: string = request.query['team_id'];
 
-        const topic: string = request.body.data
-        const location: string = request.body.data
-        const date: string = request.body.data
-        const members: Array<string> = request.body.data
+        const topic: string = request.body.data['topic']
+        const location: string = request.body.data['location']
+        const date: string = request.body.data['date']
+        const members: Array<string> = request.body.data['members']
 
         if (topic == null || location == null || date == null || members == null) {
             response.status(200).json(ERROR_PARAMS_FORM)
@@ -261,7 +261,7 @@ export class MeetingController {
     }
 
     private deleteMeetingFromRequest(request: Request, response: Response) {
-        const meeting_id: string = request.body.data;
+        const meeting_id: string = request.body.data['meeting_id'];
         if (meeting_id == null) {
             response.status(200).json(ERROR_FORM)
             return
