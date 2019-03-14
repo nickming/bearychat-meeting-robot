@@ -1,36 +1,31 @@
 import * as express from "express";
 import * as bodyParser from "body-parser";
 import { MeetingRoutes } from "./routes/meetingRoutes";
-import * as mongoose from "mongoose";
+import * as AV from 'leancloud-storage';
 
 class App {
 
     public app: express.Application = express();
     public routePrv: MeetingRoutes = new MeetingRoutes();
-    public mongoUrl: string = 'mongodb://localhost/RobotDb';
 
 
     constructor() {
         this.config();
-        this.mongoSetup();
+        this.initLeanCloud()
         this.routePrv.routes(this.app);
     }
 
-    private config(): void {
+    private config() {
         this.app.use(bodyParser.json());
         this.app.use(bodyParser.urlencoded({ extended: false }));
-        // serving static files 
         this.app.use(express.static('public'));
     }
 
-    private mongoSetup(): void {
-        mongoose.connect(this.mongoUrl, { useNewUrlParser: true }, (err) => {
-            if (err == null) {
-                console.log('connect to mongodb!')
-            } else {
-                console.log(`can't connect mongodb ${err}`);
-            }
-        });
+    private initLeanCloud() {
+        AV.init({
+            appId: 'fHiwXWjTWk97Qln9rulQ5Tq6-gzGzoHsz',
+            appKey: '2dyfpVBsqOH3K3l9KzVDQe7i'
+        })
     }
 
 }
