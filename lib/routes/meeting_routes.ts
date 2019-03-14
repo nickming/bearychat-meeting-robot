@@ -1,6 +1,6 @@
 import * as express from "express";
 import { Request, Response } from 'express';
-import { MeetingController } from '../controllers/meetingController';
+import { MeetingController } from '../controllers/meeting_controller';
 
 export class MeetingRoutes {
     meetingController: MeetingController = new MeetingController();

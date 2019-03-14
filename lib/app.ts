@@ -1,6 +1,6 @@
 import * as express from "express";
 import * as bodyParser from "body-parser";
-import { MeetingRoutes } from "./routes/meetingRoutes";
+import { MeetingRoutes } from "./routes/meeting_routes";
 import * as AV from 'leancloud-storage';
 
 class App {

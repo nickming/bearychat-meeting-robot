@@ -1,6 +1,6 @@
 import { Request, Response, response } from 'express';
 import { Form } from '../models/base/action';
-import { BearyChatHelper } from '../utils/bearychatHelper';
+import { BearyChatHelper } from '../utils/bearychat_helper';
 import { BEARYCHAT_INIT_URL, ActionType, BEARYCHAT_RESULT_URL } from '../utils/constants';
 import { INIT_STATE_FORM, CREATE_STATE_FORM, ERROR_FORM, generateMeetingResultForm, generateCreateSuccessForm, generateDeleteMeetingForm, generateManageMeetingForm, convertDateToString, DELETE_MEETING_SUCCESS_FORM, ERROR_PARAMS_FORM, MEETING_WAS_DELETED } from '../utils/formUtils';
 import { Meeting, MemberReceipt } from '../models/av_models';
