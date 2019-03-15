@@ -2,7 +2,7 @@ import { Request, Response, response } from 'express';
 import { Form } from '../models/base/action';
 import { BearyChatHelper } from '../utils/bearychat_helper';
 import { BEARYCHAT_INIT_URL, ActionType, BEARYCHAT_RESULT_URL } from '../utils/constants';
-import { INIT_STATE_FORM, CREATE_STATE_FORM, ERROR_FORM, generateMeetingResultForm, generateCreateSuccessForm, generateDeleteMeetingForm, generateManageMeetingForm, convertDateToString, DELETE_MEETING_SUCCESS_FORM, ERROR_PARAMS_FORM, MEETING_WAS_DELETED } from '../utils/formUtils';
+import { INIT_STATE_FORM, ERROR_FORM, generateMeetingResultForm, generateCreateSuccessForm, generateDeleteMeetingForm, generateManageMeetingForm, convertDateToString, DELETE_MEETING_SUCCESS_FORM, ERROR_PARAMS_FORM, MEETING_WAS_DELETED, CHOOSE_MEETING_TARGET_TYPE, generateCreateMeetingForm } from '../utils/formUtils';
 import { Meeting, MemberReceipt } from '../models/av_models';
 import * as AV from 'leancloud-storage';
 
@@ -24,7 +24,45 @@ export class MeetingController {
                 .lessThanOrEqualTo('startDate', now + 5 * 60)
                 .find()
             this.notifyMeetingIsComing(meetings);
-        }, 1 * 60 * 1000);
+        }, 4 * 60 * 1000);
+    }
+
+    handleDynamicMeetingData(req: Request, res: Response): void {
+        const action: string = req.body['action']
+        switch (action) {
+            case ActionType.CREATE: {
+                this.sendForm(CHOOSE_MEETING_TARGET_TYPE, res);
+                break
+            }
+            case ActionType.MANAGE: {
+                this.handleManageMeetingFormRequest(req, res);
+                break
+            }
+            case ActionType.BACK: {
+                this.sendForm(INIT_STATE_FORM, res);
+                break
+            }
+            case ActionType.DELETE: {
+                this.handleDeleteMeetingFormRequest(req, res);
+                break
+            }
+            case ActionType.CREATE_MEETING: {
+                this.createMeetingFromRequest(req, res);
+                break
+            }
+            case ActionType.CHOOSE_MEETING_TARGET_TYPE: {
+                this.handleChooseMeetingType(req, res);
+                break;
+            }
+            case ActionType.DELETE_MEETING: {
+                this.deleteMeetingFromRequest(req, res);
+                break
+            }
+            default: {
+                this.sendForm(ERROR_FORM, res);
+                break
+            }
+        }
     }
 
     handleBearyChatWebHook(req: Request, res: Response): void {
@@ -46,40 +84,6 @@ export class MeetingController {
 
     handleInitFormRequest(req: Request, res: Response): void {
         this.sendForm(INIT_STATE_FORM, res);
-    }
-
-    handleDynamicMeetingData(req: Request, res: Response): void {
-        const action: string = req.body['action']
-        switch (action) {
-            case ActionType.CREATE: {
-                this.sendForm(CREATE_STATE_FORM, res);
-                break
-            }
-            case ActionType.MANAGE: {
-                this.handleManageMeetingFormRequest(req, res);
-                break
-            }
-            case ActionType.BACK: {
-                this.sendForm(INIT_STATE_FORM, res);
-                break
-            }
-            case ActionType.DELETE: {
-                this.handleDeleteMeetingFormRequest(req, res);
-                break
-            }
-            case ActionType.CREATE_MEETING: {
-                this.createMeetingFromRequest(req, res);
-                break
-            }
-            case ActionType.DELETE_MEETING: {
-                this.deleteMeetingFromRequest(req, res);
-                break
-            }
-            default: {
-                this.sendForm(ERROR_FORM, res);
-                break
-            }
-        }
     }
 
     handleShowMeetingResult(req: Request, res: Response, isGet: boolean): any {
@@ -138,6 +142,12 @@ export class MeetingController {
         }
     }
 
+    private handleChooseMeetingType(req: Request, res: Response) {
+        const type = req.body.data['target_type']
+        const isChannel = type == "channel"
+        res.status(200).json(generateCreateMeetingForm(isChannel))
+    }
+
     private handleDeleteMeetingFormRequest(req: Request, res: Response) {
         const uid: string = req.query['user_id'];
         const nowTs = Math.round(new Date().getTime() / 1000);
@@ -183,16 +193,65 @@ export class MeetingController {
         const topic: string = request.body.data['topic']
         const location: string = request.body.data['location']
         const date: string = request.body.data['date']
+        const extra: string = request.body.data['extra']
         const members: Array<string> = request.body.data['members']
+        const channels: Array<string> = request.body.data['channels']
 
-        if (topic == null || location == null || date == null || members == null) {
+
+        const lackTargetType = members == null && channels == null
+
+        if (topic == null || location == null || date == null || lackTargetType) {
             response.status(200).json(ERROR_PARAMS_FORM)
             return
         }
+        if (members != null) {
+            this.createMeetingByMembers(members, user_id, location, topic, date, team_id, token, extra, response);
+        } else {
+            this.createMeetingByChannel(channels, location, topic, date, user_id, team_id, token, extra, response);
+        }
+    }
 
-        //如果创建者不在会议里，则添加进去
+    private createMeetingByChannel(channels: string[], location: string, topic: string, date: string, user_id: string, team_id: string, token: string, extra: string, response: Response) {
+        const vid = channels[0];
+        let meetingData = {
+            location: location,
+            topic: topic,
+            vid: channels[0],
+            startDate: date,
+            uid: user_id,
+            teamId: team_id,
+            extra: extra
+        };
+        this.bearyChatHelper.getMemberNameByUid(token, user_id)
+            .then(creator => {
+                meetingData['userName'] = creator;
+                return this.bearyChatHelper.getChannelInfoByVid(token, vid);
+            })
+            .then(info => {
+                let members = info['member_uids'] as Array<string>
+                let name = info['name']
+                meetingData['memberIds'] = members;
+                meetingData['channelName'] = name
+                return meetingData;
+            })
+            .then(data => {
+                return new Meeting().save(data);
+            })
+            .then((value) => {
+                const meetingId = value.id;
+                console.log(`save a new meeting ${meetingId}`);
+                this.sendMessageToTargetChannel(token, vid, value);
+                response.status(200).json(generateCreateSuccessForm(value));
+            })
+            .catch((reason) => {
+                console.log(`save meeting error:${reason}`);
+                response.status(200).json(ERROR_FORM);
+            });
+    }
+
+    private createMeetingByMembers(members: string[], user_id: string, location: string, topic: string, date: string, team_id: string, token: string, extra: string, response: Response) {
         if (members.find(id => id == user_id) == null) {
-            members.push(user_id)
+            members.push(user_id);
         }
         let meetingData = {
             location: location,
@@ -200,30 +259,31 @@ export class MeetingController {
             memberIds: members,
             startDate: date,
             uid: user_id,
+            extra: extra,
             teamId: team_id,
-        }
+        };
         this.bearyChatHelper.getMemberNameByUid(token, user_id)
             .then(creator => {
-                meetingData['userName'] = creator
-                return this.bearyChatHelper.getMemberNamesByUids(token, members)
+                meetingData['userName'] = creator;
+                return this.bearyChatHelper.getMemberNamesByUids(token, members);
             })
             .then(names => {
-                meetingData['memberNames'] = names
-                return meetingData
+                meetingData['memberNames'] = names;
+                return meetingData;
             })
             .then(data => {
-                return new Meeting().save(data)
+                return new Meeting().save(data);
             })
             .then((value) => {
                 const meetingId = value.id;
-                console.log(`save a new meeting ${meetingId}`)
-                this.sendMessageToTargetMembers(token, members, meetingId)
-                response.status(200).json(generateCreateSuccessForm(value))
+                console.log(`save a new meeting ${meetingId}`);
+                this.sendMessageToTargetMembers(token, members, meetingId);
+                response.status(200).json(generateCreateSuccessForm(value));
             })
             .catch((reason) => {
-                console.log(`save meeting error:${reason}`)
+                console.log(`save meeting error:${reason}`);
                 response.status(200).json(ERROR_FORM);
-            })
+            });
     }
 
     private deleteMeetingFromRequest(request: Request, response: Response) {
@@ -258,6 +318,14 @@ export class MeetingController {
             })
     }
 
+    private sendMessageToTargetChannel(token: string, vid: string, meeting: any) {
+        let userName = meeting.get('userName')
+        let topic = meeting.get('topic')
+        let location = meeting.get('location')
+        let date = meeting.get('startDate')
+        this.bearyChatHelper.sendMessageToBearyChat(token, vid, `@<-channel-> 大叫好，${userName}发起了一场会议.请大家知晓! - 主题:${topic} - 地点:${location} - 时间:${convertDateToString(date)}`)
+    }
+
     private sendMessageToTargetMembers(token: string, members: Array<string>, meetingId: any) {
         members.forEach((uid) => {
             this.bearyChatHelper.getVidByMemberId(token, uid)
@@ -287,6 +355,24 @@ export class MeetingController {
     private notifyMeetingIsComing(meeting: Array<any>) {
         meeting.forEach(element => {
             if (element.get('hadNotify') == true) return
+            let vid = element.get('vid') as string
+            if (vid != null) {
+                let topic = element.get('topic')
+                let location = element.get('location')
+                let date = element.get('startDate')
+                this.bearyChatHelper.sendMessageToBearyChat(TOKEN, vid, `@<-channel-> 大叫好，有一场会议即将在**${convertDateToString(date)}**开始 - 主题:${topic} - 地点:${location}`)
+                    .then(success => {
+                        new AV.Query(Meeting).get(element.id)
+                            .then((meeting: any) => {
+                                meeting.set('hadNotify', true);
+                                return meeting.save()
+                            })
+                    }, onError => {
+                        console.log(`can not notify${onError}`);
+                    })
+                return
+            }
+
             let uids = element.get('memberIds') as Array<string>
             uids.forEach(uid => {
                 this.bearyChatHelper.getVidByMemberId(TOKEN, uid)
@@ -294,7 +380,7 @@ export class MeetingController {
                         const date = element.get('startDate')
                         const topic = element.get('topic')
                         const names = element.get('memberNames')
-                        this.bearyChatHelper.sendMessageToBearyChat(TOKEN, vid, `您有一条会议即将在 **${convertDateToString(date)}** 开始 - 主题: **${topic}** - 与会成员: **${names}**`)
+                        this.bearyChatHelper.sendMessageToBearyChat(TOKEN, vid, `您有一场会议即将在 **${convertDateToString(date)}** 开始 - 主题: **${topic}** - 与会成员: **${names}**`)
                     })
                     .then(success => {
                         new AV.Query(Meeting).get(element.id)

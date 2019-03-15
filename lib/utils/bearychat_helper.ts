@@ -1,6 +1,6 @@
 import axios, { AxiosPromise } from 'axios';
 import { Request, Response } from 'express';
-import { BEARYCHAT_MESSAGE_CREATE_URL, BEARYCHAT_P2P_CREATE_URL, BEARYCHAT_USER_INFO_URL } from './constants';
+import { BEARYCHAT_MESSAGE_CREATE_URL, BEARYCHAT_P2P_CREATE_URL, BEARYCHAT_USER_INFO_URL, BEARYCHAT_CHANNEL_INFO_URL } from './constants';
 
 export class BearyChatHelper {
     async getVidByMemberId(token: string, uid: string) {
@@ -33,6 +33,18 @@ export class BearyChatHelper {
             });
     }
 
+    async getChannelInfoByVid(token: string, vid: string) {
+        return await axios.get(BEARYCHAT_CHANNEL_INFO_URL, {
+            params: {
+                token: token,
+                channel_id: vid
+            }
+        })
+            .then(res => {
+                return res.data
+            })
+    }
+
     async getMemberNamesByUids(token: string, uids: Array<string>): Promise<Array<string>> {
         const names = new Array<string>();
         return new Promise((resolve, reject) => {
@@ -44,6 +56,7 @@ export class BearyChatHelper {
                 }
             })
         })
-
     }
+
+
 }

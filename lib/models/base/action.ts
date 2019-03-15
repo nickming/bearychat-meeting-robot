@@ -164,3 +164,20 @@ export class Divider extends Action {
         super(FormActionTypes.DIVIDER);
     }
 }
+
+
+export class ChannelSelect extends Action {
+
+    name: string;
+    multi: boolean;
+    label: string;
+    placeholder: string;
+
+    constructor(name: string, multi: boolean, label?: string, placeholder?: string) {
+        super(FormActionTypes.CHANNEL_SELECT)
+        this.name = name;
+        this.label = label;
+        this.placeholder = placeholder;
+        this.multi = multi
+    }
+}
