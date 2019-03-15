@@ -2,15 +2,16 @@ import { Form, Submit, Input, DateSelect, MemberSelct, Element, Section, Context
 import { ActionType } from "./constants";
 
 export const generateMeetingResultForm = (meeting: any, hadConfirm: boolean): Form => {
-    const location: string = meeting['location']
-    const topic: string = meeting['topic']
-    const start_date: number = meeting['start_date']
-    const member_names: string = meeting['member_names']
+    const location: string = meeting.get('location')
+    const topic: string = meeting.get('topic')
+    const startDate: number = meeting.get('startDate')
+    const names: Array<string> = meeting.get('memberNames')
     const form = new Form([
         new Section(`- 主题: ${topic}`),
         new Section(`- 地点: ${location}`),
-        new Section(`- 时间: ${convertDateToString(start_date)}`),
-        new Section(`- 成员: ${member_names}`),
+        new Section(`- 时间: ${convertDateToString(startDate)}`),
+        new Section(`- 成员: ${names}`),
+        new Section(`***`),
     ])
     if (hadConfirm) return form;
     form.actions.push(new Submit(ActionType.CONFIRM_MEETINT_RECEIPT, '确认参加会议', 'primary'))
@@ -18,15 +19,16 @@ export const generateMeetingResultForm = (meeting: any, hadConfirm: boolean): Fo
 }
 
 export const generateCreateSuccessForm = (meeting: any): Form => {
-    const location: string = meeting['location']
-    const topic: string = meeting['topic']
-    const start_date: number = meeting['start_date']
-    const member_names: string = meeting['member_names']
+    const location: string = meeting.get('location')
+    const topic: string = meeting.get('topic')
+    const startDate: number = meeting.get('startDate')
+    const names: Array<string> = meeting.get('memberNames')
     return new Form([
         new Section(`- 主题: ${topic}`),
         new Section(`- 地点: ${location}`),
-        new Section(`- 时间: ${convertDateToString(start_date)}`),
-        new Section(`- 成员: ${member_names}`),
+        new Section(`- 时间: ${convertDateToString(startDate)}`),
+        new Section(`- 成员: ${names}`),
+        new Section(`***`),
         new Submit(ActionType.BACK, '完成', 'primary')
     ])
 }
@@ -38,18 +40,19 @@ export const generateManageMeetingForm = (meetings: Array<any>): Form => {
     ])
     let form = new Form([new Section('**以下是已经预约的会议**')]);
     meetings.forEach(element => {
-        const location: string = element['location']
-        const topic: string = element['topic']
-        const start_date: number = element['start_date']
-        const member_names: string = element['member_names']
+        const location: string = element.get('location')
+        const topic: string = element.get('topic')
+        const startDate: number = element.get('startDate')
+        const names: Array<string> = element.get('memberNames')
         let now = new Date().getTime()
-        if (now > start_date * 1000) {
+        if (now > startDate * 1000) {
             form.actions.push(new Section(`- **会议已过期**`))
         }
         form.actions.push(new Section(`- 主题: ${topic}`)),
             form.actions.push(new Section(`- 地点: ${location}`)),
-            form.actions.push(new Section(`- 时间: ${convertDateToString(start_date)}`)),
-            form.actions.push(new Section(`- 成员: ${member_names}`))
+            form.actions.push(new Section(`- 时间: ${convertDateToString(startDate)}`)),
+            form.actions.push(new Section(`- 成员: ${names}`)),
+            form.actions.push(new Section(`***`))
     });
     form.actions.push(new Submit(ActionType.BACK, '返回', 'primary'))
     return form;
@@ -64,12 +67,13 @@ export const generateDeleteMeetingForm = (meetings: Array<any>): Form => {
 
     let form = new Form([new Section('**选择要取消的会议**')]);
     let options = meetings.map(element => {
-        const topic: string = element['topic'];
-        const _id: string = element['_id'];
-        return new SelectOption(topic, _id);
+        const topic: string = element.get('topic');
+        const id: string = element.id;
+        return new SelectOption(topic, id);
     });
-    form.actions.push(new Select('meeting_id', false, options, '根据主题选择会议', '选择要删除的会议'))
+    form.actions.push(new Select('meeting_id', false, options, '根据主题选择会议', '选择要取消的会议'))
     form.actions.push(new Submit(ActionType.DELETE_MEETING, '确认', 'primary'))
+    form.actions.push(new Submit(ActionType.BACK, '取消', 'primary'))
     return form;
 }
 

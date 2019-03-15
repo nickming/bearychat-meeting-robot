@@ -29,13 +29,21 @@ export class BearyChatHelper {
             }
         })
             .then(res => {
-                return res.data['name'] || res['full_name']
+                return res.data['name'] as string
             });
     }
 
-    async getMemberNamesByUids(token: string, uids: Array<string>) {
-        return uids.map(async uid => {
-            return await this.getMemberNameByUid(token, uid)
+    async getMemberNamesByUids(token: string, uids: Array<string>): Promise<Array<string>> {
+        const names = new Array<string>();
+        return new Promise((resolve, reject) => {
+            uids.forEach(async (uid, index) => {
+                let name = await this.getMemberNameByUid(token, uid)
+                names.push(name)
+                if (index == uids.length - 1) {
+                    resolve(names)
+                }
+            })
         })
+
     }
 }

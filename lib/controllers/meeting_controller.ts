@@ -18,13 +18,13 @@ export class MeetingController {
 
     private meetingNotifyLoop() {
         setInterval(async () => {
-            let now = new Date().getTime() / 1000;
+            let now = Math.round(new Date().getTime() / 1000);
             let meetings = await new AV.Query(Meeting).equalTo('hadNotify', false)
                 .greaterThanOrEqualTo('startDate', now)
                 .lessThanOrEqualTo('startDate', now + 5 * 60)
                 .find()
             this.notifyMeetingIsComing(meetings);
-        }, 5 * 60 * 1000);
+        }, 1 * 60 * 1000);
     }
 
     handleBearyChatWebHook(req: Request, res: Response): void {
@@ -92,7 +92,7 @@ export class MeetingController {
                 .equalTo('uid', uid)
                 .first()
                 .then(receipt => {
-                    return (receipt as any).hadConfirm
+                    return receipt.get('hadConfirm')
                 })
                 .then(confirm => {
                     return new AV.Query(Meeting)
@@ -112,7 +112,7 @@ export class MeetingController {
                 .equalTo('hadConfirm', false)
                 .first()
                 .then((receipt: any) => {
-                    receipt.hadConfirm = true
+                    receipt.set('hadConfirm', true)
                     return receipt.save()
                 })
                 .then(() => {
@@ -121,8 +121,8 @@ export class MeetingController {
                 .then(value => {
                     const form = generateMeetingResultForm(value, true)
                     res.status(200).json(form)
-                    let uid = (value as any).uid
-                    topic = (value as any).topic
+                    let uid = value.get('uid')
+                    topic = value.get('topic')
                     return this.bearyChatHelper.getVidByMemberId(TOKEN, uid)
                 })
                 .then(vid => {
@@ -140,8 +140,10 @@ export class MeetingController {
 
     private handleDeleteMeetingFormRequest(req: Request, res: Response) {
         const uid: string = req.query['user_id'];
+        const nowTs = Math.round(new Date().getTime() / 1000);
         new AV.Query(Meeting)
             .equalTo('uid', uid)
+            .greaterThanOrEqualTo('startDate', nowTs)
             .find()
             .then(meetings => {
                 return generateDeleteMeetingForm(meetings)
@@ -158,7 +160,7 @@ export class MeetingController {
         const uid: string = req.query['user_id'];
         new AV.Query(Meeting)
             .contains('memberIds', uid)
-            .descending('startDate')
+            .ascending('startDate')
             .ascending('hadNotify')
             .find()
             .then(meetings => {
@@ -213,9 +215,8 @@ export class MeetingController {
                 return new Meeting().save(data)
             })
             .then((value) => {
-                const meetingId = value._id;
+                const meetingId = value.id;
                 console.log(`save a new meeting ${meetingId}`)
-                // memberIds = memberIds.filter(id => user_id != id)
                 this.sendMessageToTargetMembers(token, members, meetingId)
                 response.status(200).json(generateCreateSuccessForm(value))
             })
@@ -227,12 +228,26 @@ export class MeetingController {
 
     private deleteMeetingFromRequest(request: Request, response: Response) {
         const meetingId: string = request.body.data['meeting_id'];
+        const uid: string = request.query['user_id']
         if (meetingId == null) {
             response.status(200).json(ERROR_FORM)
             return
         }
-        new AV.Query(Meeting)
-            .get(meetingId)
+        new AV.Query(MemberReceipt)
+            .equalTo('meetingId', meetingId)
+            .equalTo('uid', uid)
+            .find()
+            .then(receipts => {
+                let objects = new Array<any>();
+                receipts.forEach(item => {
+                    objects.push(item)
+                })
+                return AV.Object.destroyAll(objects)
+            })
+            .then(() => {
+                return new AV.Query(Meeting)
+                    .get(meetingId)
+            })
             .then((meeting: any) => {
                 return meeting.destroy()
             })
@@ -251,7 +266,7 @@ export class MeetingController {
                 })
                 .then(() => {
                     new MemberReceipt().save({
-                        meeting_id: meetingId,
+                        meetingId: meetingId,
                         uid: uid,
                         hadConfirm: false
                     })
@@ -269,21 +284,26 @@ export class MeetingController {
         response.status(200).json(form)
     }
 
-    private async notifyMeetingIsComing(meeting: Array<any>) {
-        meeting.forEach(async element => {
-            if (element.hadNotify == true) return
-            let uids = element.memberIds as Array<string>
-            uids.forEach(async uid => {
-                let vid = await this.bearyChatHelper.getVidByMemberId(TOKEN, uid)
-                this.bearyChatHelper.sendMessageToBearyChat(TOKEN, vid, `您有一条会议即将在**${convertDateToString(element.start_date)}**开始，主题是**${element.topic}**,与会成员有${element.member_names}`)
+    private notifyMeetingIsComing(meeting: Array<any>) {
+        meeting.forEach(element => {
+            if (element.get('hadNotify') == true) return
+            let uids = element.get('memberIds') as Array<string>
+            uids.forEach(uid => {
+                this.bearyChatHelper.getVidByMemberId(TOKEN, uid)
+                    .then(vid => {
+                        const date = element.get('startDate')
+                        const topic = element.get('topic')
+                        const names = element.get('memberNames')
+                        this.bearyChatHelper.sendMessageToBearyChat(TOKEN, vid, `您有一条会议即将在 **${convertDateToString(date)}** 开始 - 主题: **${topic}** - 与会成员: **${names}**`)
+                    })
                     .then(success => {
                         new AV.Query(Meeting).get(element.id)
                             .then((meeting: any) => {
-                                meeting.hadNotify = true;
+                                meeting.set('hadNotify', true);
                                 return meeting.save()
                             })
                     }, onError => {
-                        console.log(`can not notify ${vid}`);
+                        console.log(`can not notify${onError}`);
                     })
 
             })
