@@ -24,5 +24,3 @@ export const BEARYCHAT_USER_INFO_URL = BASE_SNITCH_URL + '/user.info'
 export const BEARYCHAT_CHANNEL_INFO_URL = BASE_SNITCH_URL + '/channel.info'
 
 export const BEARYCHAT_INIT_URL = SERVER_DOMAIN_URL + '/api/meeting';
-
-export const BEARYCHAT_RESULT_URL = SERVER_DOMAIN_URL + '/api/meeting/result';

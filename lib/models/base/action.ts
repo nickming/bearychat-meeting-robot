@@ -93,14 +93,16 @@ export class Input extends Action {
     name: string;
     label: string;
     placeholder: string;
-    hidden?: boolean
+    hidden?: boolean;
+    value?: any;
 
-    constructor(name: string, label: string, placeholder: string, hidden?: boolean) {
+    constructor(name: string, label: string, placeholder: string, hidden?: boolean, value?: any) {
         super(FormActionTypes.INPUT);
         this.name = name;
         this.label = label;
         this.placeholder = placeholder;
         this.hidden = hidden;
+        this.value = value;
     }
 }
 

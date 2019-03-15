@@ -19,19 +19,8 @@ export class MeetingRoutes {
             });
 
         app.route('/api/meeting')
-            .get((req, res) => {
-                this.meetingController.handleInitFormRequest(req, res);
-            })
             .post((req, res) => {
                 this.meetingController.handleDynamicMeetingData(req, res);
-            })
-
-        app.route('/api/meeting/result')
-            .get((req, res) => {
-                this.meetingController.handleShowMeetingResult(req, res, true);
-            })
-            .post((req, res) => {
-                this.meetingController.handleShowMeetingResult(req, res, false);
             })
     }
 }

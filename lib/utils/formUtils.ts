@@ -8,9 +8,11 @@ export const generateMeetingResultForm = (meeting: any, hadConfirm: boolean): Fo
     const names: Array<string> = meeting.get('memberNames')
     const channelName: string = meeting.get('channelName')
     const extra: string = meeting.get('extra')
+    const meetingId = meeting.id;
     const form = new Form([
         new Section(`- 主题: ${topic}`),
         new Section(`- 地点: ${location}`),
+        new Input('meeting_id', 'meeting_id', 'meeting_id', true, meetingId),
         new Section(`- 时间: ${convertDateToString(startDate)}`),
     ])
     if (names != null) {
@@ -22,7 +24,9 @@ export const generateMeetingResultForm = (meeting: any, hadConfirm: boolean): Fo
     if (extra != null) {
         form.actions.push(new Section(`- 备注信息: ${extra}`))
     }
-    form.actions.push(new Section(`***`))
+    if (!hadConfirm) {
+        form.actions.push(new Section(`***`))
+    }
     if (hadConfirm) return form;
     form.actions.push(new Submit(ActionType.CONFIRM_MEETINT_RECEIPT, '确认参加会议', 'primary'))
     return form;

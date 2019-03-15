@@ -1,7 +1,7 @@
 import { Request, Response, response } from 'express';
 import { Form } from '../models/base/action';
 import { BearyChatHelper } from '../utils/bearychat_helper';
-import { BEARYCHAT_INIT_URL, ActionType, BEARYCHAT_RESULT_URL } from '../utils/constants';
+import { BEARYCHAT_INIT_URL, ActionType } from '../utils/constants';
 import { INIT_STATE_FORM, ERROR_FORM, generateMeetingResultForm, generateCreateSuccessForm, generateDeleteMeetingForm, generateManageMeetingForm, convertDateToString, DELETE_MEETING_SUCCESS_FORM, ERROR_PARAMS_FORM, MEETING_WAS_DELETED, CHOOSE_MEETING_TARGET_TYPE, generateCreateMeetingForm } from '../utils/formUtils';
 import { Meeting, MemberReceipt } from '../models/av_models';
 import * as AV from 'leancloud-storage';
@@ -58,6 +58,10 @@ export class MeetingController {
                 this.deleteMeetingFromRequest(req, res);
                 break
             }
+            case ActionType.CONFIRM_MEETINT_RECEIPT: {
+                this.handleShowMeetingResult(req, res)
+                break;
+            }
             default: {
                 this.sendForm(ERROR_FORM, res);
                 break
@@ -69,7 +73,7 @@ export class MeetingController {
         const vchannel: string = req.body['vchannel']
         const token: string = req.body['token']
         this.bearyChatHelper.sendMessageToBearyChat(token, vchannel,
-            '欢迎使用会议助手小机器人!', BEARYCHAT_INIT_URL)
+            '欢迎使用会议助手小机器人!', BEARYCHAT_INIT_URL, JSON.stringify(INIT_STATE_FORM))
             .then(_ => {
                 response.status(200).send({
                     message: 'send success!'
@@ -86,60 +90,38 @@ export class MeetingController {
         this.sendForm(INIT_STATE_FORM, res);
     }
 
-    handleShowMeetingResult(req: Request, res: Response, isGet: boolean): any {
-        const meetingId = req.query['meeting_id'];
+    handleShowMeetingResult(req: Request, res: Response): any {
+        const meetingId = req.body.data['meeting_id'];
         const uid = req.query['user_id'];
         let topic = ""
-        if (isGet) {
-            new AV.Query(MemberReceipt)
-                .equalTo('meetingId', meetingId)
-                .equalTo('uid', uid)
-                .first()
-                .then(receipt => {
-                    return receipt.get('hadConfirm')
-                })
-                .then(confirm => {
-                    return new AV.Query(Meeting)
-                        .get(meetingId)
-                        .then(value => {
-                            const form = generateMeetingResultForm(value, confirm)
-                            res.status(200).json(form)
-                        })
-                })
-                .catch(err => {
-                    res.status(200).json(MEETING_WAS_DELETED)
-                    console.log(`can not show result:${err}`);
-                })
-        } else {
-            new AV.Query(MemberReceipt)
-                .equalTo('meetingId', meetingId)
-                .equalTo('hadConfirm', false)
-                .first()
-                .then((receipt: any) => {
-                    receipt.set('hadConfirm', true)
-                    return receipt.save()
-                })
-                .then(() => {
-                    return new AV.Query(Meeting).get(meetingId)
-                })
-                .then(value => {
-                    const form = generateMeetingResultForm(value, true)
-                    res.status(200).json(form)
-                    let uid = value.get('uid')
-                    topic = value.get('topic')
-                    return this.bearyChatHelper.getVidByMemberId(TOKEN, uid)
-                })
-                .then(vid => {
-                    return this.bearyChatHelper.getMemberNameByUid(TOKEN, uid)
-                        .then(name => {
-                            this.bearyChatHelper.sendMessageToBearyChat(TOKEN, vid, `**${name}**已确定参加会议:${topic}`)
-                        })
-                })
-                .catch(err => {
-                    res.status(200).json(MEETING_WAS_DELETED)
-                    console.log(`can not show result:${err}`);
-                })
-        }
+        new AV.Query(MemberReceipt)
+            .equalTo('meetingId', meetingId)
+            .equalTo('hadConfirm', false)
+            .first()
+            .then((receipt: any) => {
+                receipt.set('hadConfirm', true)
+                return receipt.save()
+            })
+            .then(() => {
+                return new AV.Query(Meeting).get(meetingId)
+            })
+            .then(value => {
+                const form = generateMeetingResultForm(value, true)
+                res.status(200).json(form)
+                let uid = value.get('uid')
+                topic = value.get('topic')
+                return this.bearyChatHelper.getVidByMemberId(TOKEN, uid)
+            })
+            .then(vid => {
+                this.bearyChatHelper.getMemberNameByUid(TOKEN, uid)
+                    .then(name => {
+                        this.bearyChatHelper.sendMessageToBearyChat(TOKEN, vid, `**${name}**已确定参加会议:${topic}`)
+                    })
+            })
+            .catch(err => {
+                res.status(200).json(MEETING_WAS_DELETED)
+                console.log(`can not show result:${err}`);
+            })
     }
 
     private handleChooseMeetingType(req: Request, res: Response) {
@@ -277,7 +259,7 @@ export class MeetingController {
             .then((value) => {
                 const meetingId = value.id;
                 console.log(`save a new meeting ${meetingId}`);
-                this.sendMessageToTargetMembers(token, members, meetingId);
+                this.sendMessageToTargetMembers(token, members, value);
                 response.status(200).json(generateCreateSuccessForm(value));
             })
             .catch((reason) => {
@@ -323,27 +305,30 @@ export class MeetingController {
         let topic = meeting.get('topic')
         let location = meeting.get('location')
         let date = meeting.get('startDate')
-        this.bearyChatHelper.sendMessageToBearyChat(token, vid, `@<-channel-> 大叫好，${userName}发起了一场会议.请大家知晓! - 主题:${topic} - 地点:${location} - 时间:${convertDateToString(date)}`)
+        this.bearyChatHelper.sendMessageToBearyChat(token, vid, `@<-channel-> 大叫好，${userName}发起了一场会议.请大家知晓!\n - 主题:${topic} \n - 地点:${location} \n - 时间:${convertDateToString(date)}`)
     }
 
-    private sendMessageToTargetMembers(token: string, members: Array<string>, meetingId: any) {
+    private sendMessageToTargetMembers(token: string, members: Array<string>, meeting: any) {
+        const meetingId = meeting.id
         members.forEach((uid) => {
-            this.bearyChatHelper.getVidByMemberId(token, uid)
-                .then(vid => {
-                    this.bearyChatHelper.sendMessageToBearyChat(token, vid, "您有到一条会议消息请确认!", BEARYCHAT_RESULT_URL + `?meeting_id=${meetingId}`)
+            new MemberReceipt()
+                .save({
+                    meetingId: meetingId,
+                    uid: uid,
+                    hadConfirm: false
                 })
                 .then(() => {
-                    new MemberReceipt().save({
-                        meetingId: meetingId,
-                        uid: uid,
-                        hadConfirm: false
-                    })
+                    return this.bearyChatHelper.getVidByMemberId(token, uid)
+                })
+                .then(vid => {
+                    const form = generateMeetingResultForm(meeting, false)
+                    this.bearyChatHelper.sendMessageToBearyChat(token, vid, "您有到一条会议消息请确认!", BEARYCHAT_INIT_URL, JSON.stringify(form))
                 })
                 .then(receipt => {
-                    console.log(`create meeting receipt:${(receipt as any).uid}`)
+                    console.log(`create meeting receipt: ${(receipt as any).uid}`)
                 })
                 .catch(err => {
-                    console.log(`can not send message to:${uid}`);
+                    console.log(`can not send message to: ${uid}`);
                 })
         })
     }
@@ -360,7 +345,7 @@ export class MeetingController {
                 let topic = element.get('topic')
                 let location = element.get('location')
                 let date = element.get('startDate')
-                this.bearyChatHelper.sendMessageToBearyChat(TOKEN, vid, `@<-channel-> 大叫好，有一场会议即将在**${convertDateToString(date)}**开始 - 主题:${topic} - 地点:${location}`)
+                this.bearyChatHelper.sendMessageToBearyChat(TOKEN, vid, `@<-channel -> 大叫好，有一场会议即将在 ** ${convertDateToString(date)}** 开始 \n - 主题: ${topic} \n - 地点: ${location} `)
                     .then(success => {
                         new AV.Query(Meeting).get(element.id)
                             .then((meeting: any) => {
@@ -368,7 +353,7 @@ export class MeetingController {
                                 return meeting.save()
                             })
                     }, onError => {
-                        console.log(`can not notify${onError}`);
+                        console.log(`can not notify${onError} `);
                     })
                 return
             }
@@ -380,7 +365,7 @@ export class MeetingController {
                         const date = element.get('startDate')
                         const topic = element.get('topic')
                         const names = element.get('memberNames')
-                        this.bearyChatHelper.sendMessageToBearyChat(TOKEN, vid, `您有一场会议即将在 **${convertDateToString(date)}** 开始 - 主题: **${topic}** - 与会成员: **${names}**`)
+                        this.bearyChatHelper.sendMessageToBearyChat(TOKEN, vid, `您有一场会议即将在 ** ${convertDateToString(date)}** 开始 \n - 主题: ** ${topic}** \n - 与会成员: ** ${names}** `)
                     })
                     .then(success => {
                         new AV.Query(Meeting).get(element.id)
@@ -389,7 +374,7 @@ export class MeetingController {
                                 return meeting.save()
                             })
                     }, onError => {
-                        console.log(`can not notify${onError}`);
+                        console.log(`can not notify${onError} `);
                     })
 
             })
