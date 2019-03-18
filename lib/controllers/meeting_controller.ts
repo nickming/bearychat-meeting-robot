@@ -4,15 +4,22 @@ import { BearyChatHelper } from '../utils/bearychat_helper';
 import { BEARYCHAT_INIT_URL, ActionType } from '../utils/constants';
 import { INIT_STATE_FORM, ERROR_FORM, generateMeetingResultForm, generateCreateSuccessForm, generateDeleteMeetingForm, generateManageMeetingForm, convertDateToString, DELETE_MEETING_SUCCESS_FORM, ERROR_PARAMS_FORM, MEETING_WAS_DELETED, CHOOSE_MEETING_TARGET_TYPE, generateCreateMeetingForm } from '../utils/formUtils';
 import { AVMeetingDataHelper } from '../models/data/av_meeting_data_helper';
+import { MongoMeetingDataHelper } from '../models/data/mongo_meeting_data_helper';
+import { isLeanCloudMode } from 'utils/constants';
 
 const TOKEN = '3610cd4bfd53071dae303c5532f79eea'
 
 export class MeetingController {
 
     bearyChatHelper: BearyChatHelper = new BearyChatHelper();
-    meetingDataHelper: BaseMeetingInterface = new AVMeetingDataHelper()
+    meetingDataHelper: BaseMeetingInterface
 
     constructor() {
+        if (isLeanCloudMode) {
+            this.meetingDataHelper = new AVMeetingDataHelper()
+        } else {
+            this.meetingDataHelper = new MongoMeetingDataHelper()
+        }
         this.meetingNotifyLoop();
     }
 

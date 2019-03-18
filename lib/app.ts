@@ -3,17 +3,22 @@ import * as bodyParser from "body-parser";
 import { MeetingRoutes } from "./routes/meeting_routes";
 import * as AV from 'leancloud-storage';
 import * as mongoose from "mongoose";
+import { isLeanCloudMode } from "utils/constants";
 
 class App {
 
     public app: express.Application = express();
     public routePrv: MeetingRoutes = new MeetingRoutes();
-    public mongoUrl: string = 'mongodb://mongo:27017/RobotDb';
+    public mongoUrl: string = 'mongodb://localhost:27017/RobotDb';
 
 
     constructor() {
         this.config();
-        this.initLeanCloud()
+        if (isLeanCloudMode) {
+            this.initLeanCloud()
+        } else {
+            this.mongoSetup()
+        }
         this.routePrv.routes(this.app);
     }
 

@@ -11,6 +11,8 @@ export enum ActionType {
     CONFIRM_MEETINT_RECEIPT = 'action_confirm_receipt'
 }
 
+export const isLeanCloudMode = true
+
 const BASE_SNITCH_URL = 'http://api.stage.bearychat.com/v1'
 
 const SERVER_DOMAIN_URL = "http://chaojidiao.stage.bearychat.com:8004"
