@@ -2,11 +2,13 @@ import * as express from "express";
 import * as bodyParser from "body-parser";
 import { MeetingRoutes } from "./routes/meeting_routes";
 import * as AV from 'leancloud-storage';
+import * as mongoose from "mongoose";
 
 class App {
 
     public app: express.Application = express();
     public routePrv: MeetingRoutes = new MeetingRoutes();
+    public mongoUrl: string = 'mongodb://mongo:27017/RobotDb';
 
 
     constructor() {
@@ -26,6 +28,16 @@ class App {
             appId: 'fHiwXWjTWk97Qln9rulQ5Tq6-gzGzoHsz',
             appKey: '2dyfpVBsqOH3K3l9KzVDQe7i'
         })
+    }
+
+    private mongoSetup(): void {
+        mongoose.connect(this.mongoUrl, { useNewUrlParser: true }, (err) => {
+            if (err == null) {
+                console.log('connect to mongodb!')
+            } else {
+                console.log(`can't connect mongodb ${err}`);
+            }
+        });
     }
 
 }

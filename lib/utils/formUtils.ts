@@ -84,6 +84,9 @@ export const generateManageMeetingForm = (meetings: Array<any>): Form => {
         if (channelName != null) {
             form.actions.push(new Section(`- 与会讨论组: ${channelName}`))
         }
+        if (extra != null) {
+            form.actions.push(new Section(`- 备注: ${extra}`))
+        }
         form.actions.push(new Section(`***`))
     });
     form.actions.push(new Submit(ActionType.BACK, '返回', 'primary'))
