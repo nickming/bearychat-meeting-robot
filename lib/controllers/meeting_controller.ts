@@ -5,7 +5,7 @@ import { BEARYCHAT_INIT_URL, ActionType } from '../utils/constants';
 import { INIT_STATE_FORM, ERROR_FORM, generateMeetingResultForm, generateCreateSuccessForm, generateDeleteMeetingForm, generateManageMeetingForm, convertDateToString, DELETE_MEETING_SUCCESS_FORM, ERROR_PARAMS_FORM, MEETING_WAS_DELETED, CHOOSE_MEETING_TARGET_TYPE, generateCreateMeetingForm } from '../utils/formUtils';
 import { AVMeetingDataHelper } from '../models/data/av_meeting_data_helper';
 import { MongoMeetingDataHelper } from '../models/data/mongo_meeting_data_helper';
-import { isLeanCloudMode } from 'utils/constants';
+import { isLeanCloudMode } from '../utils/constants';
 
 const TOKEN = '3610cd4bfd53071dae303c5532f79eea'
 
@@ -76,7 +76,7 @@ export class MeetingController {
         const vchannel: string = req.body['vchannel']
         const token: string = req.body['token']
         this.bearyChatHelper.sendMessageToBearyChat(token, vchannel,
-            '欢迎使用会议助手小机器人!', BEARYCHAT_INIT_URL, JSON.stringify(INIT_STATE_FORM))
+            '欢迎使用会议助手小机器人!', BEARYCHAT_INIT_URL, INIT_STATE_FORM)
             .then(_ => {
                 response.status(200).send({
                     message: 'send success!'

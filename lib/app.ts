@@ -3,7 +3,7 @@ import * as bodyParser from "body-parser";
 import { MeetingRoutes } from "./routes/meeting_routes";
 import * as AV from 'leancloud-storage';
 import * as mongoose from "mongoose";
-import { isLeanCloudMode } from "utils/constants";
+import { isLeanCloudMode } from "./utils/constants";
 
 class App {
 

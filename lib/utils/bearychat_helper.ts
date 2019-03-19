@@ -12,7 +12,7 @@ export class BearyChatHelper {
         })
     }
 
-    async sendMessageToBearyChat(token: string, vchannelId: string, text: string, formUrl?: string, form?: string) {
+    async sendMessageToBearyChat(token: string, vchannelId: string, text: string, formUrl?: string, form?: any) {
         return await axios.post(BEARYCHAT_MESSAGE_CREATE_URL, {
             token: token,
             vchannel_id: vchannelId,
