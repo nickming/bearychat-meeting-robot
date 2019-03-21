@@ -7,7 +7,7 @@ import { AVMeetingDataHelper } from '../models/data/av_meeting_data_helper';
 import { MongoMeetingDataHelper } from '../models/data/mongo_meeting_data_helper';
 import { isLeanCloudMode } from '../utils/constants';
 
-const TOKEN = '3610cd4bfd53071dae303c5532f79eea'
+const TOKEN = 'f78605ed5e301a76732e2de2cb2cbfa6'
 
 export class MeetingController {
 
