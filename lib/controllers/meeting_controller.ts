@@ -1,13 +1,13 @@
 import { Request, Response, response } from 'express';
 import { Form } from '../models/base/action';
 import { BearyChatHelper } from '../utils/bearychat_helper';
-import { BEARYCHAT_INIT_URL, ActionType } from '../utils/constants';
+import { BEARYCHAT_INIT_URL, ActionType, HUBOT_TOKEN } from '../utils/constants';
 import { INIT_STATE_FORM, ERROR_FORM, generateMeetingResultForm, generateCreateSuccessForm, generateDeleteMeetingForm, generateManageMeetingForm, convertDateToString, DELETE_MEETING_SUCCESS_FORM, ERROR_PARAMS_FORM, MEETING_WAS_DELETED, CHOOSE_MEETING_TARGET_TYPE, generateCreateMeetingForm } from '../utils/formUtils';
 import { AVMeetingDataHelper } from '../models/data/av_meeting_data_helper';
 import { MongoMeetingDataHelper } from '../models/data/mongo_meeting_data_helper';
 import { isLeanCloudMode } from '../utils/constants';
 
-const TOKEN = 'f78605ed5e301a76732e2de2cb2cbfa6'
+const TOKEN = HUBOT_TOKEN
 
 export class MeetingController {
 

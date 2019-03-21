@@ -13,9 +13,11 @@ export enum ActionType {
 
 export const isLeanCloudMode = true
 
-const BASE_SNITCH_URL = 'https://api.bearychat.com/api/v1'
+const BASE_SNITCH_URL = 'https://api.bearychat.com/v1'
 
-const SERVER_DOMAIN_URL = "http://meeting.applet.bearychat.com:3009"
+const SERVER_DOMAIN_URL = "http://meeting.applet.bearychat.com"
+
+export const HUBOT_TOKEN = "f78605ed5e301a76732e2de2cb2cbfa6"
 
 export const BEARYCHAT_MESSAGE_CREATE_URL = BASE_SNITCH_URL + '/message.create';
 
