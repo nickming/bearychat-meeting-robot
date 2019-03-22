@@ -19,6 +19,9 @@ export class MeetingRoutes {
             });
 
         app.route('/api/meeting')
+            .get((req, res) => {
+                this.meetingController.handleGetInitMeetingFormData(req, res)
+            })
             .post((req, res) => {
                 this.meetingController.handleDynamicMeetingData(req, res);
             })

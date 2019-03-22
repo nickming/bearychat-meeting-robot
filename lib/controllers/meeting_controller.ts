@@ -30,6 +30,10 @@ export class MeetingController {
         }, 5 * 60 * 1000);
     }
 
+    handleGetInitMeetingFormData(req: Request, res: Response): void {
+        this.sendForm(INIT_STATE_FORM, res)
+    }
+
     handleDynamicMeetingData(req: Request, res: Response): void {
         const action: string = req.body['action']
         switch (action) {
