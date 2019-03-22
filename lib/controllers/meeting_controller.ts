@@ -293,7 +293,7 @@ export class MeetingController {
                 })
                 .then(vid => {
                     const form = generateMeetingResultForm(meeting, false)
-                    this.bearyChatHelper.sendMessageToBearyChat(token, vid, "您有到一条会议消息请确认!", BEARYCHAT_INIT_URL, JSON.stringify(form))
+                    this.bearyChatHelper.sendMessageToBearyChat(token, vid, "您有到一条会议消息请确认!", BEARYCHAT_INIT_URL, form)
                 })
                 .then(receipt => {
                     console.log(`create meeting receipt: ${(receipt as any).uid}`)
