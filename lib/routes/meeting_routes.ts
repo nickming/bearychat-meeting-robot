@@ -25,5 +25,6 @@ export class MeetingRoutes {
             .post((req, res) => {
                 this.meetingController.handleDynamicMeetingData(req, res);
             })
+
     }
 }

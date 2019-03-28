@@ -98,8 +98,8 @@ export class MeetingController {
     }
 
     handleShowMeetingResult(req: Request, res: Response): any {
-        const meetingId = req.body.data['meeting_id'];
         const uid = req.query['user_id'];
+        const meetingId = req.query['meeting_id']
         let topic = ""
         this.meetingDataHelper.updateMemberReceiptConfirm(meetingId)
             .then(() => {
@@ -293,10 +293,8 @@ export class MeetingController {
                 })
                 .then(vid => {
                     const form = generateMeetingResultForm(meeting, false)
-                    this.bearyChatHelper.sendMessageToBearyChat(token, vid, "您有到一条会议消息请确认!", BEARYCHAT_INIT_URL, form)
-                })
-                .then(receipt => {
-                    console.log(`create meeting receipt: ${(receipt as any).uid}`)
+                    const confirmUrl = BEARYCHAT_INIT_URL + `?meeting_id=${meetingId}`
+                    this.bearyChatHelper.sendMessageToBearyChat(token, vid, "您有到一条会议消息请确认!", confirmUrl, form)
                 })
                 .catch(err => {
                     console.log(`can not send message to: ${uid}`);
